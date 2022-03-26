@@ -9,13 +9,22 @@ from bs4 import BeautifulSoup
 from time import sleep
 from selenium.common import exceptions
 from django.core import serializers
+from pyvirtualdisplay import Display
+import lxml
 # Create your views here.
 class GradeTable(APIView):
     def get(self, request):
+        display = Display(visible=0, size=(800,600))
+        display.start()
+        options = webdriver.ChromeOptions()
+        options.add_argument('-headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-gpu')
         # 创建 WebDriver 对象，指明使用chrome浏览器驱动
-        wd = webdriver.Chrome(service=Service(r'chromedriver_win32/chromedriver.exe'))
+        wd = webdriver.Chrome(chrome_options=options,executable_path='/root/WXminiprograme-backend/chromedriver')
         # 调用WebDriver 对象的get方法 可以让浏览器打开指定网址
         wd.get('https://jwglxt-proxy3.buct.edu.cn/jwglxt/xtgl/login_slogin.html?time=1609818249232')
+        wd.implicitly_wait(5)
         List = []
         try:
             ID = request.query_params['id']
@@ -25,6 +34,7 @@ class GradeTable(APIView):
                 semester = 0
             else:
                 semester = eval(semester)
+            year = eval(request.query_params['year'])
             # 根据id选择元素，返回的就是该元素对应的WebElement对象
             wd.find_element(By.ID, 'yhm').send_keys(ID)
             wd.find_element(By.ID, 'mm').send_keys(Password)
@@ -43,7 +53,10 @@ class GradeTable(APIView):
             wd.find_element(By.ID, 'xqm_chosen').click()
             select = wd.find_element(By.CSS_SELECTOR, '#xqm_chosen > div > ul')
             select.find_elements(By.TAG_NAME, 'li')[semester].click()
-            # 暂停一秒点击查询才有效
+            wd.find_element(By.ID, 'xnm_chosen').click()
+            select = wd.find_element(By.CSS_SELECTOR, '#xnm_chosen > div > ul')
+            select.find_elements(By.TAG_NAME, 'li')[year].click()
+	    # 暂停一秒点击查询才有效
             sleep(0.5)
             wd.find_element(By.ID, 'search_go').click()
             # 暂停一秒等待获取成绩列表
@@ -63,8 +76,7 @@ class GradeTable(APIView):
                 subject = Subject(str(credit), str(score), str(gradePoint), str(schoolYear), str(name), str(grade), str(class_), str(teacher))
                 # print(subject.schoolYear, subject.semester, subject.name, subject.credit, subject.score, subject.grade,
                 #       subject.class_, subject.teacher, subject.gradePoint)
-                if subject.score != "合格" or subject.score != "不合格":
-                    List.append(subject.jsonserializer())
+                List.append(subject.jsonserializer())
             if len(List) == 0:
                 return myResponse.OK(msg="暂无成绩")
             # sum_gradePoint = 0
@@ -83,4 +95,4 @@ class GradeTable(APIView):
             return myResponse.Error("未知错误")
         finally:
             wd.quit()
-        return myResponse.OK(data=json.dumps(List, ensure_ascii=False))
+        return myResponse.OK(data=json.loads(json.dumps(List, ensure_ascii=False)))
