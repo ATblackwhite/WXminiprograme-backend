@@ -9,7 +9,7 @@ class Subject:
     class_ = ""
     teacher = ""
 
-    def __init__(self, credit, score, gradePoint, schoolYear, name, grade, class_, teacher):
+    def __init__(self, credit, score, gradePoint, schoolYear, name, grade, class_, teacher, semester):
         self.gradePoint = gradePoint
         self.score = score
         self.credit = credit
@@ -18,6 +18,7 @@ class Subject:
         self.grade = grade
         self.class_ = class_
         self.teacher = teacher
+        self.semester = semester
 
     def jsonserializer(self):
         return {
@@ -28,5 +29,6 @@ class Subject:
             'name': self.name,
             'grade': self.grade,
             'class': self.class_,
-            'teacher': self.teacher
+            'teacher': self.teacher,
+            'semester': self.semester
         }

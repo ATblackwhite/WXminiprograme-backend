@@ -11,6 +11,7 @@ from selenium.common import exceptions
 from django.core import serializers
 from pyvirtualdisplay import Display
 import lxml
+from selenium.webdriver.support.ui import Select
 # Create your views here.
 class GradeTable(APIView):
     def get(self, request):
@@ -29,12 +30,6 @@ class GradeTable(APIView):
         try:
             ID = request.query_params['id']
             Password = request.query_params['passwd']
-            semester = request.query_params['semester']
-            if semester == "全部":
-                semester = 0
-            else:
-                semester = eval(semester)
-            year = eval(request.query_params['year'])
             # 根据id选择元素，返回的就是该元素对应的WebElement对象
             wd.find_element(By.ID, 'yhm').send_keys(ID)
             wd.find_element(By.ID, 'mm').send_keys(Password)
@@ -50,12 +45,14 @@ class GradeTable(APIView):
                 if '学生成绩查询' in wd.title:
                     # 如果是，那么这时候WebDriver对象就是对应的该窗口，正好，跳出循环，
                     break
+            select = Select(wd.find_element(By.NAME, 'currentPage'))
+            select.select_by_value('150')
             wd.find_element(By.ID, 'xqm_chosen').click()
             select = wd.find_element(By.CSS_SELECTOR, '#xqm_chosen > div > ul')
-            select.find_elements(By.TAG_NAME, 'li')[semester].click()
+            select.find_elements(By.TAG_NAME, 'li')[0].click()
             wd.find_element(By.ID, 'xnm_chosen').click()
             select = wd.find_element(By.CSS_SELECTOR, '#xnm_chosen > div > ul')
-            select.find_elements(By.TAG_NAME, 'li')[year].click()
+            select.find_elements(By.TAG_NAME, 'li')[0].click()
 	    # 暂停一秒点击查询才有效
             sleep(0.5)
             wd.find_element(By.ID, 'search_go').click()
@@ -68,12 +65,12 @@ class GradeTable(APIView):
                 score = line.find(attrs={"aria-describedby": "tabGrid_cj"}).string
                 gradePoint = line.find(attrs={"aria-describedby": "tabGrid_xfjd"}).string
                 schoolYear = line.find(attrs={"aria-describedby": "tabGrid_xnmmc"}).string
-                # semester = line.fing(attrs={"aria-describedby": "tabGrid_xqmmc"}).string 有BUG
+                semester = line.find(attrs={"aria-describedby": "tabGrid_xqmmc"}).string
                 name = line.find(attrs={"aria-describedby": "tabGrid_kcmc"}).string
-                grade = line.find(attrs={"aria-describedby": "tabGrid_xf"}).string
+                grade = line.find(attrs={"aria-describedby": "tabGrid_jd"}).string
                 class_ = line.find(attrs={"aria-describedby": "tabGrid_jxbmc"}).string
                 teacher = line.find(attrs={"aria-describedby": "tabGrid_jsxm"}).string
-                subject = Subject(str(credit), str(score), str(gradePoint), str(schoolYear), str(name), str(grade), str(class_), str(teacher))
+                subject = Subject(str(credit), str(score), str(gradePoint), str(schoolYear), str(name), str(grade), str(class_), str(teacher), str(semester))
                 # print(subject.schoolYear, subject.semester, subject.name, subject.credit, subject.score, subject.grade,
                 #       subject.class_, subject.teacher, subject.gradePoint)
                 List.append(subject.jsonserializer())
